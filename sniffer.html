@@ -1,0 +1,683 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>PW Sniffer Active</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Courier New', monospace;
+      background: #060809;
+      color: #ccc;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* ── Top bar ── */
+    #topbar {
+      background: #0d0f0d;
+      border-bottom: 1px solid #1a2a1a;
+      padding: 8px 12px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-shrink: 0;
+      z-index: 999;
+    }
+    #topbar .brand {
+      font-size: 11px;
+      letter-spacing: 3px;
+      color: #00c864;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+    #counter {
+      background: #00c864;
+      color: #000;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 20px;
+      min-width: 28px;
+      text-align: center;
+    }
+    #status-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: #00c864;
+      animation: pulse 1.5s infinite;
+      flex-shrink: 0;
+    }
+    @keyframes pulse {
+      0%,100% { opacity: 1; }
+      50% { opacity: 0.3; }
+    }
+
+    .spacer { flex: 1; }
+
+    /* Buttons in topbar */
+    .tb-btn {
+      font-family: 'Courier New', monospace;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      border: none;
+      padding: 6px 14px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: transform 0.1s, opacity 0.1s;
+      white-space: nowrap;
+    }
+    .tb-btn:active { transform: scale(0.95); }
+
+    #btn-save {
+      background: linear-gradient(135deg, #00c864, #007a3d);
+      color: #000;
+    }
+    #btn-restart {
+      background: transparent;
+      color: #ff4a4a;
+      border: 1px solid #ff4a4a44;
+    }
+    #btn-restart:hover { background: #ff4a4a11; }
+    #btn-panel {
+      background: transparent;
+      color: #00c864;
+      border: 1px solid #00c86444;
+      font-size: 18px;
+      padding: 4px 10px;
+    }
+
+    /* ── Side Panel ── */
+    #panel {
+      position: fixed;
+      top: 0; right: 0;
+      width: min(340px, 92vw);
+      height: 100vh;
+      background: rgba(8,12,9,0.97);
+      border-left: 1px solid #1e2e1e;
+      display: flex;
+      flex-direction: column;
+      z-index: 1000;
+      transform: translateX(100%);
+      transition: transform 0.3s cubic-bezier(.4,0,.2,1);
+      backdrop-filter: blur(12px);
+    }
+    #panel.open { transform: translateX(0); }
+
+    #panel-header {
+      padding: 14px 16px;
+      border-bottom: 1px solid #1e2e1e;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    #panel-header h3 {
+      font-size: 12px;
+      letter-spacing: 3px;
+      color: #00c864;
+      text-transform: uppercase;
+      flex: 1;
+    }
+    #panel-close {
+      background: none;
+      border: none;
+      color: #888;
+      font-size: 20px;
+      cursor: pointer;
+      line-height: 1;
+    }
+
+    #url-list {
+      flex: 1;
+      overflow-y: auto;
+      padding: 10px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    #url-list::-webkit-scrollbar { width: 4px; }
+    #url-list::-webkit-scrollbar-track { background: transparent; }
+    #url-list::-webkit-scrollbar-thumb { background: #1e3e1e; border-radius: 2px; }
+
+    .url-item {
+      background: #0d160d;
+      border: 1px solid #1a2e1a;
+      border-radius: 8px;
+      padding: 10px 12px;
+      animation: slideIn 0.2s ease;
+    }
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateX(20px); }
+      to   { opacity: 1; transform: translateX(0); }
+    }
+
+    .url-type {
+      font-size: 9px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      padding: 2px 6px;
+      border-radius: 4px;
+      display: inline-block;
+      margin-bottom: 6px;
+      font-weight: 700;
+    }
+    .type-m3u8  { background: #003320; color: #00c864; }
+    .type-mp4   { background: #1a1000; color: #ffaa00; }
+    .type-mpd   { background: #100020; color: #aa88ff; }
+    .type-pdf   { background: #200000; color: #ff6666; }
+
+    .url-text {
+      font-size: 9.5px;
+      color: #888;
+      word-break: break-all;
+      line-height: 1.5;
+      margin-bottom: 8px;
+      max-height: 54px;
+      overflow: hidden;
+    }
+
+    .url-seq {
+      font-size: 9px;
+      color: #334;
+      margin-bottom: 6px;
+    }
+
+    .url-actions { display: flex; gap: 6px; }
+    .url-copy, .url-open {
+      font-family: 'Courier New', monospace;
+      font-size: 10px;
+      padding: 4px 10px;
+      border-radius: 4px;
+      cursor: pointer;
+      border: none;
+      font-weight: 700;
+      transition: opacity 0.15s;
+    }
+    .url-copy { background: #0d2e1a; color: #00c864; }
+    .url-open { background: #1a1a00; color: #ffaa00; }
+    .url-copy:hover, .url-open:hover { opacity: 0.8; }
+
+    .empty-state {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      color: #2a4a2a;
+      text-align: center;
+      padding: 20px;
+    }
+    .empty-state .icon { font-size: 36px; }
+    .empty-state p { font-size: 12px; line-height: 1.6; }
+
+    /* ── Main content: iframe redirect msg ── */
+    #main-content {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      text-align: center;
+    }
+
+    .instruction-card {
+      background: #0d150d;
+      border: 1px solid #1a2e1a;
+      border-radius: 12px;
+      padding: 32px 28px;
+      max-width: 400px;
+      width: 100%;
+    }
+    .instruction-card .icon { font-size: 40px; margin-bottom: 14px; }
+    .instruction-card h2 {
+      font-size: 16px;
+      color: #fff;
+      margin-bottom: 10px;
+      letter-spacing: 1px;
+    }
+    .instruction-card p {
+      font-size: 12px;
+      color: #667;
+      line-height: 1.7;
+      margin-bottom: 20px;
+    }
+
+    .step {
+      background: #0a100a;
+      border: 1px solid #162216;
+      border-radius: 8px;
+      padding: 10px 14px;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      text-align: left;
+    }
+    .step-num {
+      background: #00c864;
+      color: #000;
+      font-size: 10px;
+      font-weight: 700;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .step-text { font-size: 11px; color: #889; line-height: 1.5; }
+    .step-text strong { color: #bbb; }
+
+    .bookmarklet-box {
+      background: #060c06;
+      border: 1px dashed #1e3e1e;
+      border-radius: 8px;
+      padding: 12px;
+      margin: 16px 0;
+      font-size: 10px;
+      color: #00c864;
+      word-break: break-all;
+      text-align: left;
+      max-height: 80px;
+      overflow-y: auto;
+      cursor: pointer;
+      user-select: all;
+      line-height: 1.4;
+    }
+
+    .copy-bm-btn {
+      background: linear-gradient(135deg, #00c864, #007a3d);
+      color: #000;
+      font-family: 'Courier New', monospace;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 8px;
+      cursor: pointer;
+      width: 100%;
+      transition: transform 0.1s;
+    }
+    .copy-bm-btn:active { transform: scale(0.97); }
+
+    /* ── Confirmation Modal ── */
+    #modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.85);
+      z-index: 2000;
+      display: none;
+      align-items: center;
+      justify-content: center;
+    }
+    #modal-overlay.show { display: flex; }
+
+    .modal {
+      background: #0d150d;
+      border: 1px solid #1e3e1e;
+      border-radius: 14px;
+      padding: 28px 24px;
+      max-width: 300px;
+      width: 90%;
+      text-align: center;
+      animation: popIn 0.2s cubic-bezier(.4,0,.2,1);
+    }
+    @keyframes popIn {
+      from { transform: scale(0.85); opacity: 0; }
+      to   { transform: scale(1); opacity: 1; }
+    }
+
+    .modal-icon { font-size: 32px; margin-bottom: 12px; }
+    .modal h3 {
+      font-size: 15px;
+      color: #fff;
+      margin-bottom: 8px;
+      letter-spacing: 1px;
+    }
+    .modal p {
+      font-size: 12px;
+      color: #889;
+      line-height: 1.6;
+      margin-bottom: 20px;
+    }
+    .modal-actions { display: flex; gap: 10px; }
+    .modal-cancel {
+      flex: 1;
+      background: transparent;
+      border: 1px solid #333;
+      color: #888;
+      font-family: 'Courier New', monospace;
+      font-size: 12px;
+      padding: 10px;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+    .modal-confirm {
+      flex: 1;
+      border: none;
+      font-family: 'Courier New', monospace;
+      font-size: 12px;
+      font-weight: 700;
+      padding: 10px;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+    .modal-confirm.danger { background: #ff4a4a; color: #fff; }
+    .modal-confirm.success { background: #00c864; color: #000; }
+
+    /* ── Toast ── */
+    #toast {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%) translateY(60px);
+      background: #0d200d;
+      border: 1px solid #00c864;
+      color: #00c864;
+      font-size: 12px;
+      padding: 10px 20px;
+      border-radius: 20px;
+      z-index: 3000;
+      transition: transform 0.3s cubic-bezier(.4,0,.2,1);
+      white-space: nowrap;
+      letter-spacing: 1px;
+    }
+    #toast.show { transform: translateX(-50%) translateY(0); }
+  </style>
+</head>
+<body>
+
+  <!-- Top Bar -->
+  <div id="topbar">
+    <div id="status-dot"></div>
+    <div class="brand">⬡ Sniffer</div>
+    <div id="counter">0</div>
+    <div class="spacer"></div>
+    <button class="tb-btn" id="btn-restart" onclick="confirmRestart()">↺ Restart</button>
+    <button class="tb-btn" id="btn-save" onclick="confirmSave()">💾 Save Data</button>
+    <button class="tb-btn" id="btn-panel" onclick="togglePanel()">☰</button>
+  </div>
+
+  <!-- Side Panel -->
+  <div id="panel">
+    <div id="panel-header">
+      <h3>Captured URLs</h3>
+      <button id="panel-close" onclick="togglePanel()">✕</button>
+    </div>
+    <div id="url-list">
+      <div class="empty-state" id="empty-state">
+        <div class="icon">📡</div>
+        <p>Abhi koi URL nahi mili.<br/>Bookmarklet use karo aur pwthor.live pe videos/PDFs kholo.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Content -->
+  <div id="main-content">
+    <div class="instruction-card">
+      <div class="icon">🎯</div>
+      <h2>Kaise Use Karen</h2>
+      <p>Ye tool ek bookmarklet deta hai jo pwthor.live pe inject karke saare media URLs capture karta hai.</p>
+
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-text">Neeche diya <strong>"Copy Bookmarklet"</strong> button dabao — code copy ho jayega.</div>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-text"><strong>Browser mein ek naya bookmark banao</strong> aur URL field mein ye copied code paste karo. Name kuch bhi rakho.</div>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-text"><strong>pwthor.live</strong> pe jao, video ya PDF kholo, phir wo bookmark tap/click karo.</div>
+      </div>
+      <div class="step">
+        <div class="step-num">4</div>
+        <div class="step-text">URLs automatically is page ke <strong>panel mein save</strong> honge. Phir "Save Data" se .txt download karo.</div>
+      </div>
+
+      <button class="copy-bm-btn" onclick="copyBookmarklet()">📋 Copy Bookmarklet Code</button>
+    </div>
+  </div>
+
+  <!-- Confirmation Modal -->
+  <div id="modal-overlay">
+    <div class="modal" id="modal-box">
+      <div class="modal-icon" id="modal-icon">⚠️</div>
+      <h3 id="modal-title">Are you sure?</h3>
+      <p id="modal-msg">Kya aap sure hain?</p>
+      <div class="modal-actions">
+        <button class="modal-cancel" onclick="closeModal()">Cancel</button>
+        <button class="modal-confirm" id="modal-confirm-btn" onclick="modalConfirmAction()">Confirm</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div id="toast"></div>
+
+  <script>
+    // ── State ──
+    let capturedURLs = [];
+    let sequence = 0;
+    let modalAction = null;
+
+    // ── Storage helpers ──
+    function saveToStorage() {
+      try { localStorage.setItem('pw_sniffer_urls', JSON.stringify(capturedURLs)); } catch(e){}
+    }
+    function loadFromStorage() {
+      try {
+        const d = localStorage.getItem('pw_sniffer_urls');
+        if (d) {
+          capturedURLs = JSON.parse(d);
+          sequence = capturedURLs.length;
+          capturedURLs.forEach(item => renderURLItem(item));
+          updateCounter();
+        }
+      } catch(e){}
+    }
+
+    // ── Detect media type ──
+    function detectType(url) {
+      const l = url.toLowerCase();
+      if (l.includes('.m3u8') || l.includes('master.m3u8') || l.includes('m3u8')) return 'm3u8';
+      if (l.includes('.mp4')) return 'mp4';
+      if (l.includes('.mpd') || l.includes('mpd')) return 'mpd';
+      if (l.includes('.pdf') || l.includes('pdf')) return 'pdf';
+      return 'm3u8';
+    }
+
+    // ── Add URL ──
+    function addURL(url) {
+      if (!url) return;
+      if (capturedURLs.some(i => i.url === url)) return; // dedupe
+      sequence++;
+      const item = { url, type: detectType(url), seq: sequence, ts: new Date().toLocaleTimeString() };
+      capturedURLs.push(item);
+      saveToStorage();
+      renderURLItem(item);
+      updateCounter();
+    }
+
+    function updateCounter() {
+      document.getElementById('counter').textContent = capturedURLs.length;
+      if (capturedURLs.length > 0) {
+        document.getElementById('empty-state')?.remove();
+      }
+    }
+
+    function renderURLItem(item) {
+      const list = document.getElementById('url-list');
+      const empty = document.getElementById('empty-state');
+      if (empty) empty.remove();
+
+      const div = document.createElement('div');
+      div.className = 'url-item';
+      div.innerHTML = `
+        <span class="url-type type-${item.type}">${item.type.toUpperCase()}</span>
+        <div class="url-seq">#${item.seq} · ${item.ts}</div>
+        <div class="url-text">${item.url}</div>
+        <div class="url-actions">
+          <button class="url-copy" onclick="copyURL('${escapeQuote(item.url)}')">Copy</button>
+          <button class="url-open" onclick="window.open('${escapeQuote(item.url)}','_blank')">Open</button>
+        </div>
+      `;
+      list.prepend(div);
+    }
+
+    function escapeQuote(s) { return s.replace(/'/g, "\\'").replace(/"/g, '&quot;'); }
+
+    function copyURL(url) {
+      navigator.clipboard.writeText(url).catch(() => {
+        const t = document.createElement('textarea');
+        t.value = url; document.body.appendChild(t); t.select();
+        document.execCommand('copy'); t.remove();
+      });
+      showToast('✓ URL Copied!');
+    }
+
+    // ── Panel toggle ──
+    function togglePanel() {
+      document.getElementById('panel').classList.toggle('open');
+    }
+
+    // ── Toast ──
+    function showToast(msg) {
+      const t = document.getElementById('toast');
+      t.textContent = msg;
+      t.classList.add('show');
+      setTimeout(() => t.classList.remove('show'), 2500);
+    }
+
+    // ── Modal ──
+    function openModal({ icon, title, msg, btnClass, btnText, action }) {
+      document.getElementById('modal-icon').textContent = icon;
+      document.getElementById('modal-title').textContent = title;
+      document.getElementById('modal-msg').textContent = msg;
+      const btn = document.getElementById('modal-confirm-btn');
+      btn.className = 'modal-confirm ' + btnClass;
+      btn.textContent = btnText;
+      modalAction = action;
+      document.getElementById('modal-overlay').classList.add('show');
+    }
+    function closeModal() {
+      document.getElementById('modal-overlay').classList.remove('show');
+      modalAction = null;
+    }
+    function modalConfirmAction() {
+      if (modalAction) modalAction();
+      closeModal();
+    }
+
+    // ── Restart ──
+    function confirmRestart() {
+      openModal({
+        icon: '⚠️',
+        title: 'Restart?',
+        msg: 'Kya aap sure hain? Saare captured URLs delete ho jayenge aur sniffer fresh start karega.',
+        btnClass: 'danger',
+        btnText: 'Haan, Restart Karo',
+        action: doRestart
+      });
+    }
+    function doRestart() {
+      capturedURLs = [];
+      sequence = 0;
+      try { localStorage.removeItem('pw_sniffer_urls'); } catch(e){}
+      const list = document.getElementById('url-list');
+      list.innerHTML = `<div class="empty-state" id="empty-state">
+        <div class="icon">📡</div>
+        <p>Abhi koi URL nahi mili.<br/>Bookmarklet use karo aur pwthor.live pe videos/PDFs kholo.</p>
+      </div>`;
+      updateCounter();
+      showToast('✓ Restart ho gaya!');
+    }
+
+    // ── Save Data ──
+    function confirmSave() {
+      if (capturedURLs.length === 0) { showToast('⚠ Koi URL nahi mili abhi tak!'); return; }
+      openModal({
+        icon: '💾',
+        title: 'Save Data?',
+        msg: `${capturedURLs.length} URL(s) ek .txt file mein save hongi aur download shuru ho jayegi.`,
+        btnClass: 'success',
+        btnText: 'Haan, Save Karo',
+        action: doSave
+      });
+    }
+    function doSave() {
+      const lines = capturedURLs.map(i =>
+        `[#${i.seq}] [${i.type.toUpperCase()}] [${i.ts}]\n${i.url}`
+      ).join('\n\n---\n\n');
+
+      const header = `PW THOR MEDIA SNIFFER - Captured URLs\nDate: ${new Date().toLocaleString()}\nTotal: ${capturedURLs.length}\n\n${'='.repeat(60)}\n\n`;
+      const content = header + lines;
+
+      const blob = new Blob([content], { type: 'text/plain' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `pw_media_urls_${Date.now()}.txt`;
+      a.click();
+      URL.revokeObjectURL(a.href);
+      showToast(`✓ ${capturedURLs.length} URLs saved!`);
+    }
+
+    // ── Bookmarklet ──
+    // This bookmarklet when run on pwthor.live will:
+    // 1. Sniff all media URLs (m3u8, mp4, mpd, pdf)
+    // 2. Send them back to THIS page via localStorage + storage event
+    const BOOKMARKLET_CODE = `javascript:(function(){var SNIFFER_KEY='pw_sniffer_incoming';function send(url){if(!url)return;var l=url.toLowerCase();var valid=(l.includes('.m3u8')||l.includes('m3u8')||l.includes('.mp4')||l.includes('.mpd')||l.includes('mpd')||l.includes('.pdf'));if(!valid)return;try{var arr=[];try{arr=JSON.parse(localStorage.getItem(SNIFFER_KEY)||'[]');}catch(e){}if(arr.indexOf(url)===-1){arr.push(url);localStorage.setItem(SNIFFER_KEY,JSON.stringify(arr));}}catch(e){}console.log('[PW Sniffer]',url);}(function(){var o=XMLHttpRequest.prototype.open;XMLHttpRequest.prototype.open=function(m,u){this.ms_url=u;return o.apply(this,arguments)};var s=XMLHttpRequest.prototype.send;XMLHttpRequest.prototype.send=function(){this.addEventListener('load',function(){try{send(this.ms_url);send(this.responseURL);}catch(e){}});return s.apply(this,arguments)}})();(function(){var f=window.fetch;window.fetch=function(input,init){var u=(typeof input==='string')?input:(input&&input.url)||'';send(u);return f.call(this,input,init).then(function(r){send(r.url);return r;});};})();document.querySelectorAll('video').forEach(function(v){if(v.currentSrc)send(v.currentSrc);if(v.src)send(v.src);v.addEventListener('play',function(){send(v.currentSrc);send(v.src);},false);});var mo=new MutationObserver(function(ms){ms.forEach(function(r){if(r.addedNodes)r.addedNodes.forEach(function(n){if(n.tagName==='VIDEO'){if(n.currentSrc)send(n.currentSrc);n.addEventListener('play',function(){send(n.currentSrc);},false);}});});});mo.observe(document.documentElement,{childList:true,subtree:true});try{(performance.getEntries?performance.getEntries():[]).forEach(function(e){if(e.name)send(e.name);});}catch(e){}alert('PW Sniffer Active! Ab video/PDF kholo — URLs capture hoti rahengi.');})();`;
+
+    function copyBookmarklet() {
+      navigator.clipboard.writeText(BOOKMARKLET_CODE).then(() => {
+        showToast('✓ Bookmarklet copied! Ab browser mein bookmark banao.');
+      }).catch(() => {
+        const t = document.createElement('textarea');
+        t.value = BOOKMARKLET_CODE;
+        document.body.appendChild(t); t.select();
+        document.execCommand('copy'); t.remove();
+        showToast('✓ Bookmarklet copied!');
+      });
+    }
+
+    // ── Poll localStorage for incoming URLs from bookmarklet ──
+    function pollIncoming() {
+      try {
+        const raw = localStorage.getItem('pw_sniffer_incoming');
+        if (!raw) return;
+        const arr = JSON.parse(raw);
+        if (!Array.isArray(arr)) return;
+        let added = false;
+        arr.forEach(url => {
+          if (!capturedURLs.some(i => i.url === url)) {
+            addURL(url);
+            added = true;
+          }
+        });
+        if (added && !document.getElementById('panel').classList.contains('open')) {
+          togglePanel();
+        }
+      } catch(e){}
+    }
+
+    // ── Init ──
+    loadFromStorage();
+    setInterval(pollIncoming, 1500);
+
+    // Close modal on overlay click
+    document.getElementById('modal-overlay').addEventListener('click', function(e) {
+      if (e.target === this) closeModal();
+    });
+  </script>
+</body>
+</html>
