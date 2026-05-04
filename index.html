@@ -1,115 +1,548 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>PW Media Sniffer</title>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
+  <title>PW Sniffer</title>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@700;800&display=swap" rel="stylesheet"/>
   <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body {
-      font-family: 'Courier New', monospace;
-      background: #0a0a0f;
-      color: #e0e0e0;
-      height: 100vh;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      overflow: hidden;
+    :root {
+      --g: #00ff88; --gd: #00c864;
+      --bg: #070a08; --bg2: #0d130e; --bg3: #111a12;
+      --border: #1a2e1c; --text: #c8d4c9; --muted: #4a5e4c;
     }
+    * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+    body { font-family:'Space Mono',monospace; background:var(--bg); color:var(--text); min-height:100vh; overflow-x:hidden; }
 
-    .bg-grid {
-      position: fixed;
-      inset: 0;
-      background-image:
-        linear-gradient(rgba(0,200,100,0.04) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(0,200,100,0.04) 1px, transparent 1px);
-      background-size: 32px 32px;
-      pointer-events: none;
+    .screen { display:none; min-height:100vh; flex-direction:column; }
+    .screen.active { display:flex; }
+
+    /* BG */
+    .bg-glow {
+      position:fixed; width:600px; height:600px;
+      background:radial-gradient(circle,rgba(0,255,136,0.05) 0%,transparent 70%);
+      top:-150px; left:-100px; pointer-events:none; z-index:0;
+      animation:dg 10s ease-in-out infinite alternate;
     }
+    @keyframes dg { from{transform:translate(0,0)} to{transform:translate(100px,80px)} }
 
-    .card {
-      background: rgba(15,20,15,0.95);
-      border: 1px solid rgba(0,200,100,0.25);
-      border-radius: 12px;
-      padding: 36px 32px;
-      max-width: 420px;
-      width: 92%;
-      text-align: center;
-      box-shadow: 0 0 40px rgba(0,200,100,0.08);
-      position: relative;
-      z-index: 1;
+    /* ─── SCREEN 1: LANDING ─── */
+    #s1 { align-items:center; justify-content:center; padding:28px; }
+    .l-inner {
+      position:relative; z-index:1; max-width:360px; width:100%;
+      display:flex; flex-direction:column; align-items:center;
     }
-
-    .logo {
-      font-size: 13px;
-      letter-spacing: 4px;
-      color: #00c864;
-      text-transform: uppercase;
-      margin-bottom: 10px;
+    .badge {
+      font-size:9px; letter-spacing:4px; color:var(--gd);
+      text-transform:uppercase; border:1px solid #1a3e22;
+      padding:5px 14px; border-radius:20px; background:#001208;
+      margin-bottom:22px; animation:fu .5s ease both;
     }
-
+    .l-icon {
+      width:76px; height:76px;
+      background:linear-gradient(135deg,#001a0a,#003318);
+      border:1px solid #1a4a22; border-radius:22px;
+      display:flex; align-items:center; justify-content:center;
+      font-size:34px; margin-bottom:20px;
+      box-shadow:0 0 50px rgba(0,255,136,0.1);
+      animation:fu .5s .08s ease both;
+    }
     h1 {
-      font-size: 22px;
-      font-weight: 700;
-      color: #fff;
-      margin-bottom: 8px;
-      letter-spacing: 1px;
+      font-family:'Syne',sans-serif; font-size:38px; font-weight:800;
+      color:#fff; text-align:center; line-height:1.1; margin-bottom:10px;
+      animation:fu .5s .12s ease both;
     }
+    h1 span { color:var(--g); }
+    .tagline {
+      font-size:11px; color:var(--muted); text-align:center;
+      line-height:1.9; margin-bottom:32px; animation:fu .5s .16s ease both;
+    }
+    .feats {
+      display:flex; gap:8px; width:100%;
+      margin-bottom:30px; animation:fu .5s .2s ease both;
+    }
+    .feat {
+      flex:1; background:var(--bg2); border:1px solid var(--border);
+      border-radius:10px; padding:14px 8px; text-align:center;
+    }
+    .fi { font-size:22px; margin-bottom:5px; }
+    .ft { font-size:9px; color:var(--muted); letter-spacing:1px; line-height:1.4; }
+    .start-btn {
+      width:100%; background:linear-gradient(135deg,var(--g),var(--gd));
+      color:#000; font-family:'Space Mono',monospace; font-weight:700;
+      font-size:14px; letter-spacing:3px; text-transform:uppercase;
+      border:none; padding:18px; border-radius:12px; cursor:pointer;
+      animation:fu .5s .24s ease both;
+      transition:transform .15s, box-shadow .15s;
+    }
+    .start-btn:hover { transform:translateY(-2px); box-shadow:0 8px 30px rgba(0,255,136,.3); }
+    .start-btn:active { transform:scale(.97); }
+    @keyframes fu { from{opacity:0;transform:translateY(14px)} to{opacity:1;transform:translateY(0)} }
 
-    p {
-      font-size: 13px;
-      color: #888;
-      line-height: 1.6;
-      margin-bottom: 28px;
+    /* ─── SCREEN 2: SETUP ─── */
+    #s2 { align-items:center; justify-content:center; padding:24px; }
+    .setup-card {
+      background:var(--bg2); border:1px solid var(--border);
+      border-radius:16px; padding:26px 20px;
+      max-width:400px; width:100%;
     }
+    .sh { display:flex; align-items:center; gap:12px; margin-bottom:20px; }
+    .sh-ico {
+      width:44px; height:44px; background:#001a0a;
+      border:1px solid #1a3e22; border-radius:10px;
+      display:flex; align-items:center; justify-content:center;
+      font-size:22px; flex-shrink:0;
+    }
+    .sh h2 { font-family:'Syne',sans-serif; font-size:18px; color:#fff; }
+    .sh p  { font-size:10px; color:var(--muted); margin-top:2px; }
+    .sstep {
+      display:flex; gap:14px; align-items:flex-start;
+      padding:14px 0; border-bottom:1px solid #0f1e10;
+    }
+    .sstep:last-of-type { border-bottom:none; }
+    .snum {
+      width:26px; height:26px; flex-shrink:0;
+      background:linear-gradient(135deg,var(--g),var(--gd));
+      color:#000; font-size:11px; font-weight:700;
+      border-radius:50%; display:flex; align-items:center; justify-content:center;
+    }
+    .sbody { flex:1; }
+    .stitle { font-size:12px; color:#ddd; font-weight:700; margin-bottom:4px; }
+    .sdesc  { font-size:10px; color:var(--muted); line-height:1.7; }
+    .sdesc b { color:#999; }
+    .copy-bm {
+      width:100%; margin-top:20px;
+      background:var(--bg3); border:1px solid var(--border);
+      color:var(--g); font-family:'Space Mono',monospace;
+      font-size:11px; font-weight:700; letter-spacing:2px;
+      padding:13px; border-radius:10px; cursor:pointer;
+      transition:background .2s, border-color .2s;
+    }
+    .copy-bm:hover { background:#0d2010; border-color:#2a5a2a; }
+    .done-btn {
+      width:100%; margin-top:10px; border:none;
+      background:linear-gradient(135deg,var(--g),var(--gd));
+      color:#000; font-family:'Space Mono',monospace;
+      font-size:12px; font-weight:700; letter-spacing:2px;
+      padding:15px; border-radius:10px; cursor:pointer;
+      transition:transform .15s, box-shadow .15s;
+    }
+    .done-btn:hover { transform:translateY(-1px); box-shadow:0 6px 20px rgba(0,255,136,.25); }
+    .done-btn:active { transform:scale(.97); }
 
-    .launch-btn {
-      background: linear-gradient(135deg, #00c864, #007a3d);
-      color: #000;
-      font-family: 'Courier New', monospace;
-      font-weight: 700;
-      font-size: 14px;
-      letter-spacing: 2px;
-      border: none;
-      padding: 14px 32px;
-      border-radius: 8px;
-      cursor: pointer;
-      width: 100%;
-      transition: transform 0.15s, box-shadow 0.15s;
-      text-transform: uppercase;
+    /* ─── SCREEN 3: TOOL ─── */
+    #s3 { flex-direction:column; }
+    #topbar {
+      background:var(--bg2); border-bottom:1px solid var(--border);
+      padding:9px 12px; display:flex; align-items:center; gap:7px;
+      flex-shrink:0; position:sticky; top:0; z-index:100;
     }
-    .launch-btn:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 6px 24px rgba(0,200,100,0.3);
+    .pdot {
+      width:8px; height:8px; border-radius:50%; background:var(--g); flex-shrink:0;
+      animation:pd 1.6s ease-in-out infinite;
     }
-    .launch-btn:active { transform: scale(0.97); }
+    @keyframes pd {
+      0%,100%{opacity:1; box-shadow:0 0 0 0 rgba(0,255,136,.4)}
+      50%{opacity:.4; box-shadow:0 0 0 5px rgba(0,255,136,0)}
+    }
+    .tbrand { font-family:'Syne',sans-serif; font-size:14px; font-weight:700; color:var(--g); }
+    #tbc {
+      background:var(--g); color:#000; font-size:10px; font-weight:700;
+      padding:2px 9px; border-radius:20px; min-width:28px; text-align:center;
+    }
+    .tsp { flex:1; }
+    .tbtn {
+      font-family:'Space Mono',monospace; font-size:10px; font-weight:700;
+      padding:6px 11px; border-radius:7px; cursor:pointer; border:none;
+      letter-spacing:1px; white-space:nowrap; transition:transform .1s, opacity .15s;
+    }
+    .tbtn:active { transform:scale(.93); }
+    #tb-pw  { background:linear-gradient(135deg,var(--g),var(--gd)); color:#000; }
+    #tb-rst { background:transparent; border:1px solid #3a1010; color:#ff6060; }
+    #tb-sav { background:#0d2010; border:1px solid #1a4020; color:var(--gd); }
+    #tb-pan { background:#0d150e; border:1px solid var(--border); color:var(--text); font-size:17px; padding:5px 9px; }
 
-    .note {
-      margin-top: 20px;
-      font-size: 11px;
-      color: #555;
+    #tool-body {
+      flex:1; display:flex; flex-direction:column;
+      align-items:center; justify-content:center;
+      padding:32px 20px; text-align:center;
     }
-    .note span { color: #00c864; }
+    .t-idle { display:flex; flex-direction:column; align-items:center; gap:14px; }
+    .t-idle .ti { font-size:54px; }
+    .t-idle h2 { font-family:'Syne',sans-serif; font-size:20px; color:#fff; }
+    .t-idle p  { font-size:11px; color:var(--muted); line-height:1.8; max-width:270px; }
+    .big-btn {
+      background:linear-gradient(135deg,var(--g),var(--gd));
+      color:#000; font-family:'Space Mono',monospace;
+      font-size:13px; font-weight:700; letter-spacing:2px;
+      border:none; padding:16px 36px; border-radius:12px;
+      cursor:pointer; margin-top:6px;
+      transition:transform .15s, box-shadow .15s;
+    }
+    .big-btn:hover { transform:translateY(-2px); box-shadow:0 8px 28px rgba(0,255,136,.3); }
+    .big-btn:active { transform:scale(.97); }
+    .hint {
+      background:#080f09; border:1px dashed #1a3a1c;
+      border-radius:10px; padding:14px 16px;
+      font-size:10px; color:var(--muted); line-height:1.8;
+      max-width:290px; margin-top:4px;
+    }
+    .hint b { color:#6a9e6e; }
+
+    /* ─── PANEL ─── */
+    #panel {
+      position:fixed; top:0; right:0;
+      width:min(340px,94vw); height:100vh;
+      background:rgba(7,10,8,.97);
+      border-left:1px solid var(--border);
+      display:flex; flex-direction:column;
+      z-index:500; transform:translateX(100%);
+      transition:transform .3s cubic-bezier(.4,0,.2,1);
+      backdrop-filter:blur(16px);
+    }
+    #panel.open { transform:translateX(0); }
+    .ph {
+      padding:13px 14px; border-bottom:1px solid var(--border);
+      display:flex; align-items:center; gap:10px; flex-shrink:0;
+    }
+    .ph h3 { font-family:'Syne',sans-serif; font-size:13px; color:var(--g); letter-spacing:2px; flex:1; }
+    #pcnt { font-size:10px; color:var(--muted); background:var(--bg3); padding:3px 8px; border-radius:10px; }
+    .pclose { background:none; border:none; color:var(--muted); font-size:20px; cursor:pointer; padding:2px 6px; line-height:1; }
+    .pclose:hover { color:#fff; }
+    #ulist { flex:1; overflow-y:auto; padding:10px; display:flex; flex-direction:column; gap:8px; }
+    #ulist::-webkit-scrollbar { width:3px; }
+    #ulist::-webkit-scrollbar-thumb { background:#1a3a1a; border-radius:2px; }
+    .empty {
+      flex:1; display:flex; flex-direction:column;
+      align-items:center; justify-content:center;
+      gap:12px; text-align:center; padding:20px; color:#2a3e2c;
+    }
+    .empty .ei { font-size:42px; }
+    .empty p { font-size:11px; line-height:1.7; }
+    .ucard {
+      background:var(--bg2); border:1px solid var(--border);
+      border-radius:10px; padding:12px;
+      animation:cin .25s ease both;
+    }
+    @keyframes cin { from{opacity:0;transform:translateX(14px)} to{opacity:1;transform:translateX(0)} }
+    .uctop { display:flex; align-items:center; gap:6px; margin-bottom:8px; }
+    .ubadge { font-size:8px; font-weight:700; letter-spacing:2px; text-transform:uppercase; padding:2px 7px; border-radius:4px; }
+    .bm3u8 { background:#002810; color:#00e870; }
+    .bmp4  { background:#1a1200; color:#ffcc00; }
+    .bmpd  { background:#0e0020; color:#cc99ff; }
+    .bpdf  { background:#1e0000; color:#ff7777; }
+    .bother{ background:#101010; color:#aaa; }
+    .useq  { font-size:9px; color:var(--muted); margin-left:auto; }
+    .utime { font-size:9px; color:#2a3e2c; }
+    .uurl  { font-size:9px; color:#5a7a5c; word-break:break-all; line-height:1.5; margin-bottom:10px; max-height:48px; overflow:hidden; }
+    .uacts { display:flex; gap:6px; }
+    .ucopy,.uopen {
+      font-family:'Space Mono',monospace; font-size:9px; font-weight:700;
+      padding:5px 10px; border-radius:6px; cursor:pointer; border:none; transition:opacity .15s;
+    }
+    .ucopy { background:#0a1e0a; color:var(--gd); border:1px solid #1a3a1a; }
+    .uopen { background:#1a1200; color:#ffcc00; border:1px solid #3a2a00; }
+    .ucopy:hover,.uopen:hover { opacity:.7; }
+
+    /* ─── MODAL ─── */
+    #moverlay {
+      position:fixed; inset:0; background:rgba(0,0,0,.88);
+      z-index:1000; display:none; align-items:center; justify-content:center;
+    }
+    #moverlay.show { display:flex; }
+    .modal {
+      background:var(--bg2); border:1px solid var(--border);
+      border-radius:16px; padding:28px 22px;
+      max-width:288px; width:90%; text-align:center;
+      animation:pop .22s cubic-bezier(.4,0,.2,1) both;
+    }
+    @keyframes pop { from{transform:scale(.88);opacity:0} to{transform:scale(1);opacity:1} }
+    #mico { font-size:36px; margin-bottom:12px; }
+    #mtit { font-family:'Syne',sans-serif; font-size:16px; color:#fff; margin-bottom:8px; }
+    #mmsg { font-size:11px; color:var(--muted); line-height:1.7; margin-bottom:22px; }
+    .mbtns { display:flex; gap:10px; }
+    .mcanc { flex:1; background:transparent; border:1px solid #222; color:#666; font-family:'Space Mono',monospace; font-size:11px; padding:11px; border-radius:8px; cursor:pointer; }
+    .mconf { flex:1; border:none; font-family:'Space Mono',monospace; font-size:11px; font-weight:700; padding:11px; border-radius:8px; cursor:pointer; }
+    .mdanger { background:#ff4444; color:#fff; }
+    .msuccess { background:var(--g); color:#000; }
+
+    /* ─── TOAST ─── */
+    #toast {
+      position:fixed; bottom:20px; left:50%;
+      transform:translateX(-50%) translateY(70px);
+      background:#0d2010; border:1px solid var(--gd);
+      color:var(--g); font-size:11px; letter-spacing:1px;
+      padding:10px 22px; border-radius:24px;
+      z-index:2000; white-space:nowrap; pointer-events:none;
+      transition:transform .3s cubic-bezier(.4,0,.2,1);
+    }
+    #toast.show { transform:translateX(-50%) translateY(0); }
   </style>
 </head>
 <body>
-  <div class="bg-grid"></div>
-  <div class="card">
-    <div class="logo">⬡ Media Sniffer</div>
-    <h1>PW Thor Extractor</h1>
-    <p>pwthor.live pe jao, videos/PDFs browse karo — sniffer background mein sab URLs capture karta rahega.</p>
-    <button class="launch-btn" onclick="launchSniffer()">🚀 Launch &amp; Start Sniffing</button>
-    <div class="note">Redirect hoga → <span>pwthor.live</span> pe</div>
+<div class="bg-glow"></div>
+
+<!-- ══ SCREEN 1: LANDING ══ -->
+<div class="screen active" id="s1">
+  <div class="l-inner">
+    <div class="badge">⬡ Media Extractor</div>
+    <div class="l-icon">📡</div>
+    <h1>PW<br/><span>Sniffer</span></h1>
+    <p class="tagline">pwthor.live ke videos &amp; PDFs ke<br/>direct links automatically capture karo</p>
+    <div class="feats">
+      <div class="feat"><div class="fi">🎯</div><div class="ft">Auto<br/>Capture</div></div>
+      <div class="feat"><div class="fi">💾</div><div class="ft">TXT<br/>Export</div></div>
+      <div class="feat"><div class="fi">⚡</div><div class="ft">Zero<br/>Login</div></div>
+    </div>
+    <button class="start-btn" onclick="goSetup()">▶ &nbsp;START</button>
+  </div>
+</div>
+
+<!-- ══ SCREEN 2: SETUP ══ -->
+<div class="screen" id="s2">
+  <div class="setup-card">
+    <div class="sh">
+      <div class="sh-ico">🔧</div>
+      <div><h2>One-Time Setup</h2><p>Sirf pehli baar — 1 minute lagega</p></div>
+    </div>
+
+    <div class="sstep">
+      <div class="snum">1</div>
+      <div class="sbody">
+        <div class="stitle">Bookmarklet Copy Karo</div>
+        <div class="sdesc">Neeche wala button dabao — code clipboard mein copy ho jayega.</div>
+      </div>
+    </div>
+    <div class="sstep">
+      <div class="snum">2</div>
+      <div class="sbody">
+        <div class="stitle">Browser Bookmark Banao</div>
+        <div class="sdesc">
+          <b>Chrome / Kiwi:</b> Koi bhi page pe address bar ka ⭐ tap karo → bookmark save karo → Bookmarks manage karo → us bookmark ko edit karo → URL field mein paste karo.<br/><br/>
+          <b>Firefox:</b> Menu → Bookmarks → Add bookmark → URL field mein paste karo.
+        </div>
+      </div>
+    </div>
+    <div class="sstep">
+      <div class="snum">3</div>
+      <div class="sbody">
+        <div class="stitle">Bas! Ek baar karna hai</div>
+        <div class="sdesc">Ab sirf pwthor.live pe jao, video kholo aur woh bookmark tap karo — URLs yahan capture honge.</div>
+      </div>
+    </div>
+
+    <button class="copy-bm" id="cbtn" onclick="copyBM()">📋 &nbsp;Copy Bookmarklet Code</button>
+    <button class="done-btn" onclick="goTool()">✅ &nbsp;Setup Ho Gaya — Tool Open Karo</button>
+  </div>
+</div>
+
+<!-- ══ SCREEN 3: TOOL ══ -->
+<div class="screen" id="s3">
+  <div id="topbar">
+    <div class="pdot"></div>
+    <div class="tbrand">SNIFFER</div>
+    <div id="tbc">0</div>
+    <div class="tsp"></div>
+    <button class="tbtn" id="tb-pw"  onclick="openPW()">🔗 PW Thor</button>
+    <button class="tbtn" id="tb-rst" onclick="cRestart()">↺</button>
+    <button class="tbtn" id="tb-sav" onclick="cSave()">💾</button>
+    <button class="tbtn" id="tb-pan" onclick="togglePanel()">☰</button>
   </div>
 
-  <script>
-    function launchSniffer() {
-      // Open pwthor.live, inject sniffer via opener or postMessage approach
-      // Since cross-origin injection via window.open is blocked, we use a bookmarklet-style approach
-      // Instead, we open the sniffer overlay page as a floating tool
-      window.location.href = 'sniffer.html';
-    }
-  </script>
+  <div id="tool-body">
+    <div class="t-idle">
+      <div class="ti">📡</div>
+      <h2>Sniffer Ready</h2>
+      <p>pwthor.live kholo, videos ya PDFs browse karo aur bookmark tap karo — URLs yahan save honge.</p>
+      <button class="big-btn" onclick="openPW()">🚀 &nbsp;Open PW Thor</button>
+      <div class="hint">
+        pwthor.live pe jake apna <b>saved bookmark tap karo</b> → phir jo bhi video/PDF kholo, URL automatically is panel mein aa jayegi.
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Panel -->
+<div id="panel">
+  <div class="ph">
+    <h3>Captured</h3>
+    <span id="pcnt">0 URLs</span>
+    <button class="pclose" onclick="togglePanel()">✕</button>
+  </div>
+  <div id="ulist">
+    <div class="empty" id="emp">
+      <div class="ei">🕳️</div>
+      <p>Koi URL nahi abhi.<br/>PW Thor kholo, bookmark tap karo aur videos browse karo.</p>
+    </div>
+  </div>
+</div>
+
+<!-- Modal -->
+<div id="moverlay" onclick="mbg(event)">
+  <div class="modal">
+    <div id="mico">⚠️</div>
+    <div id="mtit"></div>
+    <div id="mmsg"></div>
+    <div class="mbtns">
+      <button class="mcanc" onclick="closeM()">Cancel</button>
+      <button class="mconf" id="mconf" onclick="doConf()">OK</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ── State ──
+var urls = [], seq = 0, pending = null;
+var SK = 'pw_cap', IK = 'pw_in', SETUP = 'pw_setup';
+
+// ── Bookmarklet ──
+var BM = "javascript:(function(){var K='pw_in';function chk(u){if(!u)return;var l=u.toLowerCase();if(!(l.includes('.m3u8')||l.includes('m3u8')||l.includes('.mp4')||l.includes('.mpd')||l.includes('mpd')||l.includes('.pdf')))return;try{var a=[];try{a=JSON.parse(localStorage.getItem(K)||'[]');}catch(e){}if(a.indexOf(u)===-1){a.push(u);localStorage.setItem(K,JSON.stringify(a));}}catch(e){}}var _o=XMLHttpRequest.prototype.open;XMLHttpRequest.prototype.open=function(m,u){this._u=u;return _o.apply(this,arguments);};var _s=XMLHttpRequest.prototype.send;XMLHttpRequest.prototype.send=function(){this.addEventListener('load',function(){chk(this._u);chk(this.responseURL);});return _s.apply(this,arguments);};var _f=window.fetch;window.fetch=function(i,o){var u=(typeof i==='string')?i:(i&&i.url)||'';chk(u);return _f.call(this,i,o).then(function(r){chk(r.url);return r;});};document.querySelectorAll('video').forEach(function(v){if(v.currentSrc)chk(v.currentSrc);v.addEventListener('play',function(){chk(v.currentSrc);},false);});new MutationObserver(function(ms){ms.forEach(function(r){r.addedNodes&&r.addedNodes.forEach(function(n){if(n.tagName==='VIDEO'){chk(n.currentSrc);n.addEventListener('play',function(){chk(n.currentSrc);});}});});}).observe(document.documentElement,{childList:true,subtree:true});try{performance.getEntries().forEach(function(e){chk(e.name);});}catch(e){}alert('\\u2705 PW Sniffer Active!\\nAb video/PDF kholo \\u2014 URLs capture ho rahi hain.');})();";
+
+// ── Screens ──
+function show(id) {
+  document.querySelectorAll('.screen').forEach(function(s){ s.classList.remove('active'); });
+  document.getElementById(id).classList.add('active');
+}
+function goSetup() {
+  if (localStorage.getItem(SETUP)) { goTool(); return; }
+  show('s2');
+}
+function goTool() {
+  localStorage.setItem(SETUP,'1');
+  show('s3');
+  loadSaved();
+  setInterval(poll, 1200);
+}
+
+// ── Copy bookmarklet ──
+function copyBM() {
+  var btn = document.getElementById('cbtn');
+  (navigator.clipboard ? navigator.clipboard.writeText(BM) : Promise.reject()).then(function(){
+    btn.textContent = '✅  Copied! Ab browser mein bookmark banao';
+    btn.style.color = 'var(--g)';
+    toast('✓ Bookmarklet copied!');
+  }).catch(function(){
+    var t=document.createElement('textarea'); t.value=BM;
+    document.body.appendChild(t); t.select();
+    try{document.execCommand('copy');}catch(e){}
+    t.remove();
+    btn.textContent='✅  Copied!';
+    toast('✓ Bookmarklet copied!');
+  });
+}
+
+// ── Open PW ──
+function openPW() { window.open('https://pwthor.live','_blank'); toast('🚀 pwthor.live khul raha hai...'); }
+
+// ── URL helpers ──
+function dtype(u) {
+  var l=u.toLowerCase();
+  if(l.includes('.m3u8')||l.includes('m3u8')) return 'm3u8';
+  if(l.includes('.mp4'))  return 'mp4';
+  if(l.includes('.mpd')||l.includes('mpd'))  return 'mpd';
+  if(l.includes('.pdf'))  return 'pdf';
+  return 'other';
+}
+function addURL(url) {
+  if(!url) return;
+  if(urls.some(function(i){return i.url===url;})) return;
+  seq++;
+  var item = {url:url, seq:seq, type:dtype(url), time:new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',second:'2-digit'})};
+  urls.push(item);
+  saveCap();
+  renderCard(item);
+  updateCtr();
+  if(urls.length===1) document.getElementById('panel').classList.add('open');
+}
+function saveCap() { try{localStorage.setItem(SK,JSON.stringify(urls));}catch(e){} }
+function loadSaved() {
+  try {
+    var d=localStorage.getItem(SK); if(!d) return;
+    var a=JSON.parse(d); if(!Array.isArray(a)) return;
+    a.forEach(function(item){ urls.push(item); seq=item.seq; renderCard(item); });
+    updateCtr();
+  } catch(e){}
+}
+function updateCtr() {
+  document.getElementById('tbc').textContent = urls.length;
+  document.getElementById('pcnt').textContent = urls.length+' URL'+(urls.length!==1?'s':'');
+}
+function renderCard(item) {
+  var list=document.getElementById('ulist');
+  var emp=document.getElementById('emp'); if(emp) emp.remove();
+  var d=document.createElement('div'); d.className='ucard';
+  d.innerHTML='<div class="uctop"><span class="ubadge b'+item.type+'">'+item.type.toUpperCase()+'</span><span class="utime">'+item.time+'</span><span class="useq">#'+item.seq+'</span></div>'
+    +'<div class="uurl">'+item.url+'</div>'
+    +'<div class="uacts"><button class="ucopy" onclick="cpURL(this,\''+esc(item.url)+'\')">Copy</button>'
+    +'<button class="uopen" onclick="window.open(\''+esc(item.url)+'\',\'_blank\')">Open</button></div>';
+  list.prepend(d);
+}
+function esc(s){ return s.replace(/\\/g,'\\\\').replace(/'/g,"\\'"); }
+function cpURL(btn,url) {
+  (navigator.clipboard ? navigator.clipboard.writeText(url) : Promise.reject()).catch(function(){
+    var t=document.createElement('textarea'); t.value=url;
+    document.body.appendChild(t); t.select();
+    try{document.execCommand('copy');}catch(e){} t.remove();
+  });
+  var o=btn.textContent; btn.textContent='✓';
+  setTimeout(function(){ btn.textContent=o; },1500);
+  toast('✓ URL Copied!');
+}
+
+// ── Poll ──
+function poll() {
+  try {
+    var raw=localStorage.getItem(IK); if(!raw) return;
+    var a=JSON.parse(raw); if(!Array.isArray(a)) return;
+    a.forEach(function(u){ if(u&&!urls.some(function(i){return i.url===u;})) addURL(u); });
+  } catch(e){}
+}
+
+// ── Panel ──
+function togglePanel() { document.getElementById('panel').classList.toggle('open'); }
+
+// ── Modal ──
+function openM(ico,tit,msg,cls,btxt,action) {
+  document.getElementById('mico').textContent=ico;
+  document.getElementById('mtit').textContent=tit;
+  document.getElementById('mmsg').textContent=msg;
+  var b=document.getElementById('mconf'); b.className='mconf '+cls; b.textContent=btxt;
+  pending=action;
+  document.getElementById('moverlay').classList.add('show');
+}
+function closeM() { document.getElementById('moverlay').classList.remove('show'); pending=null; }
+function doConf() { if(pending) pending(); closeM(); }
+function mbg(e) { if(e.target===document.getElementById('moverlay')) closeM(); }
+
+function cRestart() {
+  openM('⚠️','Restart?','Saare captured URLs delete ho jayenge. Sure?','mdanger','Haan, Delete Karo',function(){
+    urls=[]; seq=0;
+    try{localStorage.removeItem(SK); localStorage.removeItem(IK);}catch(e){}
+    document.getElementById('ulist').innerHTML='<div class="empty" id="emp"><div class="ei">🕳️</div><p>Koi URL nahi abhi.<br/>PW Thor kholo aur bookmark tap karo.</p></div>';
+    updateCtr(); toast('✓ Restart ho gaya!');
+  });
+}
+function cSave() {
+  if(!urls.length){ toast('⚠ Koi URL nahi mili abhi tak!'); return; }
+  openM('💾','Save Data?',urls.length+' URL(s) .txt file mein save hongi.','msuccess','Haan, Save Karo',function(){
+    var hdr='PW THOR MEDIA SNIFFER — Captured URLs\nDate : '+new Date().toLocaleString()+'\nTotal: '+urls.length+'\n'+'='.repeat(60)+'\n\n';
+    var lines=urls.map(function(i){ return '[#'+i.seq+'] ['+i.type.toUpperCase()+'] ['+i.time+']\n'+i.url; }).join('\n\n---\n\n');
+    var blob=new Blob([hdr+lines],{type:'text/plain'});
+    var a=document.createElement('a'); a.href=URL.createObjectURL(blob);
+    a.download='pw_urls_'+Date.now()+'.txt'; a.click(); URL.revokeObjectURL(a.href);
+    toast('✓ '+urls.length+' URLs saved!');
+  });
+}
+
+// ── Toast ──
+var tt;
+function toast(msg) {
+  var el=document.getElementById('toast'); el.textContent=msg;
+  el.classList.add('show'); clearTimeout(tt);
+  tt=setTimeout(function(){ el.classList.remove('show'); },2600);
+}
+</script>
 </body>
 </html>
